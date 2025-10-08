@@ -5,14 +5,14 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding='utf-8')
 
 setup(
-    name="smart-commit",
+    name="smart-gcm",
     version="0.1.0",
     author="Aakash Varma Nadimpalli",
     author_email="aakashvarma1898@gmail.com",
     description="AI-powered Git commit message generator",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/aakashvarma/smart-commit",
+    url="https://github.com/aakashvarma/smart-gcm",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -39,7 +39,7 @@ setup(
     },
     keywords="git commit conventional-commits ai gemini",
     project_urls={
-        "Bug Reports": "https://github.com/aakashvarma/smart-commit/issues",
-        "Source": "https://github.com/aakashvarma/smart-commit",
+        "Bug Reports": "https://github.com/aakashvarma/smart-gcm/issues",
+        "Source": "https://github.com/aakashvarma/smart-gcm",
     },
 )
