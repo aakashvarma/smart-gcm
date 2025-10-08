@@ -15,14 +15,14 @@ AI-powered Git commit message generator that follows the Conventional Commits sp
 ### From PyPI (once published)
 
 ```bash
-pip install smart-commit
+pip install smart-gcm
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/aakashvarma/smart-commit.git
-cd smart-commit
+git clone https://github.com/aakashvarma/smart-gcm.git
+cd smart-gcm
 pip install -e .
 ```
 
@@ -118,7 +118,7 @@ BREAKING CHANGE: all API responses now follow JSON:API specification
 ### Project Structure
 
 ```
-smart-commit/
+smart-gcm/
 ├── smart_commit/
 │   ├── __init__.py
 │   ├── cli.py          # Command-line interface
@@ -146,4 +146,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-If you encounter any issues or have questions, please file an issue on [GitHub](https://github.com/aakashvarma/smart-commit/issues).
+If you encounter any issues or have questions, please file an issue on [GitHub](https://github.com/aakashvarma/smart-gcm/issues).

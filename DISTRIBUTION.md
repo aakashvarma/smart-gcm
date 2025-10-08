@@ -5,7 +5,7 @@
 Your final project structure should look like this:
 
 ```
-smart-commit/
+smart-gcm/
 ├── smart_commit/
 │   ├── __init__.py
 │   ├── cli.py
@@ -57,7 +57,7 @@ python -m build
 ```
 
 This creates two files in the `dist/` directory:
-- `smart-commit-0.1.0.tar.gz` (source distribution)
+- `smart-gcm-0.1.0.tar.gz` (source distribution)
 - `smart_commit-0.1.0-py3-none-any.whl` (wheel distribution)
 
 ## Step 3: Test on TestPyPI (Optional but Recommended)
@@ -69,7 +69,7 @@ twine upload --repository testpypi dist/*
 
 2. **Test installation from TestPyPI:**
 ```bash
-pip install --index-url https://test.pypi.org/simple/ --no-deps smart-commit
+pip install --index-url https://test.pypi.org/simple/ --no-deps smart-gcm
 ```
 
 3. **Test the command:**
@@ -79,7 +79,7 @@ gcm --help
 
 4. **Uninstall test version:**
 ```bash
-pip uninstall smart-commit
+pip uninstall smart-gcm
 ```
 
 ## Step 4: Upload to PyPI (Production)
@@ -92,14 +92,14 @@ twine upload dist/*
 You'll be prompted for your PyPI credentials.
 
 2. **Verify upload:**
-Visit https://pypi.org/project/smart-commit/
+Visit https://pypi.org/project/smart-gcm/
 
 ## Step 5: Installation Instructions for Users
 
 After publishing, users can install with:
 
 ```bash
-pip install smart-commit
+pip install smart-gcm
 ```
 
 ## Using API Tokens (Recommended)
@@ -166,7 +166,7 @@ Examples:
 ## Troubleshooting
 
 ### Package name already exists
-If `smart-commit` is taken, choose a different name:
+If `smart-gcm` is taken, choose a different name:
 1. Rename directory to `smart_commit_yourname`
 2. Update all references in setup files
 3. Update the command in entry_points to `gcm-yourname`
@@ -179,7 +179,7 @@ If `smart-commit` is taken, choose a different name:
 ### Module not found after installation
 - Ensure `smart_commit/__init__.py` exists
 - Verify package structure matches documentation
-- Try: `pip install --force-reinstall smart-commit`
+- Try: `pip install --force-reinstall smart-gcm`
 
 ## Best Practices
 
@@ -221,10 +221,10 @@ twine upload --repository testpypi dist/*
 twine upload dist/*
 
 # Install from PyPI
-pip install smart-commit
+pip install smart-gcm
 
 # Uninstall
-pip uninstall smart-commit
+pip uninstall smart-gcm
 ```
 
 ## GitHub Actions (Optional Automation)

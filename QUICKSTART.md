@@ -4,7 +4,7 @@
 
 ### 1. Install
 ```bash
-pip install smart-commit
+pip install smart-gcm
 ```
 
 ### 2. Get Gemini API Key
@@ -32,8 +32,8 @@ gcm
 ### 1. Clone and Setup
 ```bash
 # Create project directory
-mkdir smart-commit
-cd smart-commit
+mkdir smart-gcm
+cd smart-gcm
 
 # Create the structure (copy all provided files into this directory)
 ```
@@ -57,7 +57,7 @@ pip install --upgrade build twine
 python -m build
 
 # This creates dist/ with:
-# - smart-commit-0.1.0.tar.gz
+# - smart-gcm-0.1.0.tar.gz
 # - smart_commit-0.1.0-py3-none-any.whl
 ```
 
@@ -67,7 +67,7 @@ python -m build
 twine upload --repository testpypi dist/*
 
 # Test install
-pip install --index-url https://test.pypi.org/simple/ smart-commit
+pip install --index-url https://test.pypi.org/simple/ smart-gcm
 
 # Test
 gcm
@@ -79,7 +79,7 @@ gcm
 twine upload dist/*
 
 # Now anyone can install with:
-# pip install smart-commit
+# pip install smart-gcm
 ```
 
 ---
@@ -89,7 +89,7 @@ twine upload dist/*
 Before publishing, ensure you have all these files:
 
 ```
-smart-commit/
+smart-gcm/
 ├── smart_commit/           ✓ Package directory
 │   ├── __init__.py        ✓ Package info
 │   ├── cli.py             ✓ Command line interface
@@ -111,7 +111,7 @@ smart-commit/
 
 ### "No module named 'smart_commit'"
 - Make sure `__init__.py` exists in `smart_commit/` directory
-- Try: `pip install --force-reinstall smart-commit`
+- Try: `pip install --force-reinstall smart-gcm`
 
 ### "GEMINI_API_KEY not set"
 - Export the variable in your shell
@@ -121,9 +121,9 @@ smart-commit/
 - Run `git add <files>` before `gcm`
 
 ### Command `gcm` not found
-- Ensure package is installed: `pip list | grep smart-commit`
+- Ensure package is installed: `pip list | grep smart-gcm`
 - Try: `python -m smart_commit.cli`
-- Reinstall: `pip uninstall smart-commit && pip install smart-commit`
+- Reinstall: `pip uninstall smart-gcm && pip install smart-gcm`
 
 ---
 
@@ -156,9 +156,9 @@ Save this as `setup_env.sh` and run once:
 ```bash
 #!/bin/bash
 
-# Setup script for smart-commit
+# Setup script for smart-gcm
 
-echo "Setting up smart-commit environment..."
+echo "Setting up smart-gcm environment..."
 
 # Check if GEMINI_API_KEY is already set
 if [ -z "$GEMINI_API_KEY" ]; then
@@ -186,11 +186,11 @@ fi
 
 # Install package if not installed
 if ! command -v gcm &> /dev/null; then
-    echo "Installing smart-commit..."
-    pip install smart-commit
-    echo "✓ smart-commit installed"
+    echo "Installing smart-gcm..."
+    pip install smart-gcm
+    echo "✓ smart-gcm installed"
 else
-    echo "✓ smart-commit already installed"
+    echo "✓ smart-gcm already installed"
 fi
 
 echo ""
