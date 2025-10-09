@@ -6,7 +6,7 @@ long_description = (this_directory / "README.md").read_text(encoding='utf-8')
 
 setup(
     name="smart-gcm",
-    version="0.1.0",
+    version="0.1.1",
     author="Aakash Varma Nadimpalli",
     author_email="aakashvarma1898@gmail.com",
     description="AI-powered Git commit message generator",
