@@ -7,6 +7,20 @@ import requests
 from .utils import run_command, sanitize_text
 
 
+# Constants
+GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+API_TIMEOUT = 30
+
+VALID_COMMIT_TYPES = [
+    "feat", "fix", "refactor", "style", "test", 
+    "docs", "build", "ops", "chore", "revert"
+]
+
+COMMIT_MESSAGE_TEMPLATE = """<type>([scope]): <description>
+[optional body]
+[optional footer(s)]"""
+
 PROMPT_TEMPLATE = """You are an expert in writing Git commit messages that strictly adhere to the Conventional Commits 1.0.0 specification, with additional opinionated rules. Below is a diff of staged changes from the command:
 
 ```
@@ -18,13 +32,11 @@ git diff --cached
 ```
 
 Generate a commit message with the following structure:
-<type>([scope]): <description>
-[optional body]
-[optional footer(s)]
+{commit_message_template}
 
 ### Requirements:
-- **Type**: Use '{commit_type}' if provided; otherwise, infer from the diff. Valid types: feat, fix, refactor, style, test, docs, build, ops, chore, revert. Note: 'perf' is a special 'refactor' type for performance improvements.
-- **Scope**: Use '{scope}' if provided; otherwise, infer a concise scope (max 20 characters, e.g., module or component name) or omit if not applicable. Enclose in parentheses, e.g., (api). Do not use issue identifiers as scopes.
+- **Type**: {type_instruction} Valid types: {valid_types}.
+- **Scope**: {scope_instruction}
 - **Description**: A concise (max 72 characters), clear summary in imperative, present tense (e.g., 'add', 'fix', 'update'). Use lowercase first letter, no period at the end.
 - **Body**: Optional. Include only if needed for motivation or context, starting one blank line after the description. Format as bullet points starting with '- ', using imperative, present tense, concise phrases (max 72 characters per line).
 - **Footer**: Optional. Include 'BREAKING CHANGE: <description>' for breaking changes if the description is insufficient. Use '!' before ':' in the subject line for breaking changes (e.g., feat(api)!). Optionally include issue references (e.g., 'Closes #123').
@@ -72,73 +84,176 @@ Generate a commit message with the following structure:
 Based on the diff, generate a commit message that meets these criteria."""
 
 
-def get_staged_diff():
-    """Get the diff of staged changes."""
-    diff_content = run_command("git diff --cached")
-    if not diff_content:
-        print("No staged changes found. Please stage changes using 'git add' before running gcm.")
-        sys.exit(1)
-    return sanitize_text(diff_content)
+class GeminiAPIError(Exception):
+    """Custom exception for Gemini API errors."""
+    pass
 
 
-def call_gemini_api(prompt):
-    """Call the Google Gemini API with the given prompt."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("Error: GEMINI_API_KEY environment variable is not set.")
-        print("Please set it with your Google Gemini API key.")
+class CommitMessageGenerator:
+    """Handles commit message generation using Google Gemini API."""
+    
+    def __init__(self, api_key=None):
+        """
+        Initialize the generator with API key.
+        
+        Args:
+            api_key: Google Gemini API key. If None, reads from GEMINI_API_KEY env var.
+        """
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
+            self._exit_with_error(
+                "GEMINI_API_KEY environment variable is not set.",
+                "Please set it with your Google Gemini API key."
+            )
+    
+    @staticmethod
+    def _exit_with_error(*messages):
+        """Print error messages and exit."""
+        for message in messages:
+            print(f"Error: {message}" if not message.startswith("Please") else message)
         sys.exit(1)
     
-    model = "gemini-2.5-flash"
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    headers = {
-        "x-goog-api-key": api_key,
-        "Content-Type": "application/json"
-    }
-    data = {
-        "contents": [{
-            "role": "user",
-            "parts": [{"text": prompt}]
-        }]
-    }
+    def _get_staged_diff(self):
+        """
+        Get the diff of staged changes.
+        
+        Returns:
+            str: Sanitized diff content.
+        """
+        diff_content = run_command("git diff --cached")
+        if not diff_content:
+            print("No staged changes found. Please stage changes using 'git add' before running gcm.")
+            sys.exit(1)
+        return sanitize_text(diff_content)
     
-    try:
-        response = requests.post(url, headers=headers, json=data, timeout=30)
-        response.raise_for_status()
-        return response.text
-    except requests.RequestException as e:
-        print(f"Error: Failed to fetch response from Gemini API: {e}")
-        sys.exit(1)
-
-
-def parse_gemini_response(response_text):
-    """Parse the Gemini API response and extract the commit message."""
-    response_text = sanitize_text(response_text)
+    def _build_prompt(self, diff_content, commit_type, scope):
+        """
+        Build the prompt for the Gemini API.
+        
+        Args:
+            diff_content: The git diff content.
+            commit_type: The commit type (if specified).
+            scope: The commit scope (if specified).
+        
+        Returns:
+            str: Formatted prompt.
+        """
+        # Determine type instruction
+        if commit_type:
+            type_instruction = f"MUST use '{commit_type}' as the type. Do NOT infer or change this type."
+        else:
+            type_instruction = "Infer the appropriate type from the diff."
+        
+        # Determine scope instruction
+        if scope:
+            scope_instruction = f"Use '{scope}' as the scope."
+        else:
+            scope_instruction = "Infer a concise scope (max 20 characters, e.g., module or component name) or omit if not applicable. Enclose in parentheses, e.g., (api). Do not use issue identifiers as scopes."
+        
+        return PROMPT_TEMPLATE.format(
+            diff_content=diff_content,
+            commit_message_template=COMMIT_MESSAGE_TEMPLATE,
+            type_instruction=type_instruction,
+            scope_instruction=scope_instruction,
+            valid_types=", ".join(VALID_COMMIT_TYPES)
+        )
     
-    try:
-        response_json = json.loads(response_text)
-        message = response_json.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-        message = re.sub(r'```', '', message).strip()
-    except json.JSONDecodeError as e:
-        print(f"Error: Failed to parse API response: {e}")
-        print("The response may contain invalid characters or be malformed.")
-        sys.exit(1)
+    def _call_api(self, prompt):
+        """
+        Call the Google Gemini API with the given prompt.
+        
+        Args:
+            prompt: The prompt to send to the API.
+        
+        Returns:
+            str: Raw API response text.
+        
+        Raises:
+            GeminiAPIError: If the API call fails.
+        """
+        url = f"{GEMINI_API_BASE_URL}/{GEMINI_MODEL}:generateContent"
+        headers = {
+            "x-goog-api-key": self.api_key,
+            "Content-Type": "application/json"
+        }
+        data = {
+            "contents": [{
+                "role": "user",
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=API_TIMEOUT)
+            response.raise_for_status()
+            return response.text
+        except requests.RequestException as e:
+            raise GeminiAPIError(f"Failed to fetch response from Gemini API: {e}")
     
-    if message == "Error: Unable to generate commit message from diff.":
-        print(message)
-        sys.exit(1)
+    def _parse_response(self, response_text):
+        """
+        Parse the Gemini API response and extract the commit message.
+        
+        Args:
+            response_text: Raw API response text.
+        
+        Returns:
+            str: Extracted commit message.
+        """
+        response_text = sanitize_text(response_text)
+        
+        try:
+            response_json = json.loads(response_text)
+            message = (
+                response_json
+                .get("candidates", [{}])[0]
+                .get("content", {})
+                .get("parts", [{}])[0]
+                .get("text", "")
+            )
+            message = re.sub(r'```', '', message).strip()
+        except json.JSONDecodeError as e:
+            self._exit_with_error(
+                f"Failed to parse API response: {e}",
+                "The response may contain invalid characters or be malformed."
+            )
+        
+        if message == "Error: Unable to generate commit message from diff.":
+            print(message)
+            sys.exit(1)
+        
+        return message
     
-    return message
+    def generate(self, commit_type=None, scope=None):
+        """
+        Generate a commit message using the Google Gemini API.
+        
+        Args:
+            commit_type: Optional commit type to use.
+            scope: Optional commit scope to use.
+        
+        Returns:
+            str: Generated commit message.
+        """
+        try:
+            diff_content = self._get_staged_diff()
+            prompt = self._build_prompt(diff_content, commit_type, scope)
+            response_text = self._call_api(prompt)
+            return self._parse_response(response_text)
+        except GeminiAPIError as e:
+            self._exit_with_error(str(e))
 
 
 def generate_commit_message(commit_type, scope):
-    """Generate a commit message using the Google Gemini API."""
-    diff_content = get_staged_diff()
-    prompt = PROMPT_TEMPLATE.format(
-        diff_content=diff_content,
-        commit_type=commit_type,
-        scope=scope
-    )
+    """
+    Generate a commit message using the Google Gemini API.
     
-    response_text = call_gemini_api(prompt)
-    return parse_gemini_response(response_text)
+    Args:
+        commit_type: Optional commit type to use.
+        scope: Optional commit scope to use.
+    
+    Returns:
+        str: Generated commit message.
+    """
+    generator = CommitMessageGenerator()
+    return generator.generate(commit_type, scope)
